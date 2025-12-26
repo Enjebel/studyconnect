@@ -28,3 +28,10 @@ if (!MONGO_URI) {
         })
         .catch(err => console.log("Database Connection Error:", err));
 }
+
+
+//  (previous imports)
+const userRoutes = require('./routes/userRoutes');
+
+// Use Routes
+app.use('/api/users', userRoutes);
