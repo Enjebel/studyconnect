@@ -28,3 +28,43 @@ exports.getAllGroups = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// Update Group Settings (Privacy, Description, etc.)
+exports.updateGroupSettings = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const updates = req.body; // e.g., { privacy: 'private', description: 'New desc' }
+
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ message: "Group not found" });
+
+        // Security: Only Admin can change settings
+        if (group.admin.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Only the admin can change settings" });
+        }
+
+        const updatedGroup = await Group.findByIdAndUpdate(groupId, updates, { new: true });
+        res.status(200).json(updatedGroup);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Remove a Member (Admin Only)
+exports.removeMember = async (req, res) => {
+    try {
+        const { groupId, userIdToRemove } = req.body;
+        const group = await Group.findById(groupId);
+
+        if (group.admin.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Only admin can remove members" });
+        }
+
+        group.members = group.members.filter(id => id.toString() !== userIdToRemove);
+        await group.save();
+        
+        res.status(200).json({ message: "Member removed" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
