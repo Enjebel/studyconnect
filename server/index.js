@@ -35,3 +35,9 @@ const userRoutes = require('./routes/userRoutes');
 
 // Use Routes
 app.use('/api/users', userRoutes);
+
+
+const groupRoutes = require('./routes/groupRoutes');
+
+// ... other app.use statements
+app.use('/api/groups', groupRoutes);
