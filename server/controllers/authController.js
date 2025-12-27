@@ -13,7 +13,6 @@ exports.registerUser = async (req, res) => {
         res.status(201).json({
             _id: user._id,
             username: user.username,
-            email: user.email,
             token: generateToken(user._id)
         });
     } catch (error) {
@@ -40,5 +39,44 @@ exports.loginUser = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
-    // ... logic we wrote in previous step ...
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const resetToken = crypto.randomBytes(20).toString('hex');
+    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+    await user.save();
+
+    const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${resetToken}`;
+    try {
+        await sendEmail({
+            email: user.email,
+            subject: 'Password Reset Token',
+            message: `Reset your password here: ${resetUrl}`
+        });
+        res.status(200).json({ message: "Email sent" });
+    } catch (err) {
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save();
+        res.status(500).json({ message: "Email failed" });
+    }
+};
+
+exports.resetPassword = async (req, res) => {
+    const resetPasswordToken = crypto.createHash('sha256').update(req.params.resettoken).digest('hex');
+    const user = await User.findOne({
+        resetPasswordToken,
+        resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) return res.status(400).json({ message: "Invalid or expired token" });
+
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Password updated" });
 };
