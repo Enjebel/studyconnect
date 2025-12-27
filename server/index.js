@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose') // added you missed this out 
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
@@ -6,6 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middleware/errorMiddleware');
+const timetableController = require('./routes/timetableRoutes')
 
 // Load Env and Connect DB
 dotenv.config();
@@ -89,3 +91,4 @@ const groupRoutes = require('./routes/groupRoutes');
 
 // ... other app.use statements
 app.use('/api/groups', groupRoutes);
+app.use('/api/groups' , timetableController)
