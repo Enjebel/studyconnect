@@ -1,69 +1,96 @@
 const Group = require('../models/Group');
 
+// Create a new group
 exports.createGroup = async (req, res) => {
     try {
-        const { name, subject, description } = req.body;
-        
-        // req.user.id comes from our Auth Middleware
+        const { name, subject, description, privacy } = req.body;
         const newGroup = new Group({
             name,
             subject,
             description,
+            privacy: privacy || 'public',
             admin: req.user.id,
-            members: [req.user.id] // Admin is automatically the first member
+            members: [req.user.id]
         });
-
-        const savedGroup = await newGroup.save();
-        res.status(201).json(savedGroup);
+        await newGroup.save();
+        res.status(201).json(newGroup);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-exports.getAllGroups = async (req, res) => {
+// Join a group (Logic for Public/Private)
+exports.joinGroup = async (req, res) => {
     try {
-        const groups = await Group.find().populate('admin', 'username');
-        res.status(200).json(groups);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// Update Group Settings (Privacy, Description, etc.)
-exports.updateGroupSettings = async (req, res) => {
-    try {
-        const { groupId } = req.params;
-        const updates = req.body; // e.g., { privacy: 'private', description: 'New desc' }
-
-        const group = await Group.findById(groupId);
+        const group = await Group.findById(req.params.groupId);
         if (!group) return res.status(404).json({ message: "Group not found" });
 
-        // Security: Only Admin can change settings
-        if (group.admin.toString() !== req.user.id) {
-            return res.status(403).json({ message: "Only the admin can change settings" });
+        if (group.members.includes(req.user.id)) {
+            return res.status(400).json({ message: "Already a member" });
         }
 
-        const updatedGroup = await Group.findByIdAndUpdate(groupId, updates, { new: true });
+        if (group.privacy === 'public') {
+            group.members.push(req.user.id);
+            await group.save();
+            return res.status(200).json({ message: "Joined successfully" });
+        } else {
+            if (group.requests.includes(req.user.id)) {
+                return res.status(400).json({ message: "Request already pending" });
+            }
+            group.requests.push(req.user.id);
+            await group.save();
+            return res.status(200).json({ message: "Request sent to admin" });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Update group settings (The function that was causing the error)
+exports.updateGroupSettings = async (req, res) => {
+    try {
+        const group = await Group.findById(req.params.groupId);
+        if (!group) return res.status(404).json({ message: "Group not found" });
+
+        if (group.admin.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        const updatedGroup = await Group.findByIdAndUpdate(
+            req.params.groupId,
+            { $set: req.body },
+            { new: true }
+        );
         res.status(200).json(updatedGroup);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-// Remove a Member (Admin Only)
-exports.removeMember = async (req, res) => {
+// Accept a member request
+exports.acceptMember = async (req, res) => {
     try {
-        const { groupId, userIdToRemove } = req.body;
+        const { groupId, userId } = req.body;
         const group = await Group.findById(groupId);
 
         if (group.admin.toString() !== req.user.id) {
-            return res.status(403).json({ message: "Only admin can remove members" });
+            return res.status(403).json({ message: "Unauthorized" });
         }
 
-        group.members = group.members.filter(id => id.toString() !== userIdToRemove);
+        group.requests = group.requests.filter(id => id.toString() !== userId);
+        group.members.push(userId);
         await group.save();
-        
-        res.status(200).json({ message: "Member removed" });
+        res.status(200).json({ message: "Member accepted" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get all groups
+exports.getGroups = async (req, res) => {
+    try {
+        const groups = await Group.find().populate('admin', 'username');
+        res.status(200).json(groups);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
