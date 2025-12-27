@@ -5,11 +5,11 @@ const { startPrivateChat, getUserChats } = require('../controllers/chatControlle
 const auth = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-// Conversation Routes
+// Conversation/Chat List Routes
 router.post('/conversation', auth, startPrivateChat);
 router.get('/conversations', auth, getUserChats);
 
-// Message Routes
+// Individual Message Routes
 router.post('/send', auth, upload.single('file'), sendMessage);
 router.get('/:conversationId', auth, getMessages);
 
