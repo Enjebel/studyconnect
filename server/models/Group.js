@@ -12,35 +12,31 @@ const GroupSchema = new mongoose.Schema({
     members: [{ 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User' 
-    }
-],
-  // why timetable is required: Stores all sessions(day,time,topic,leader) for the group shows in the tab
-  //lastLeaderIndex: helps auto-pick next member of each session (rotation)
-  //attendanceRecords: stores who came + files shared showing in the attendance tab
-  // New field for timetable 
- timetable:[
-    {
-        day:{ type: String, required: true },
-        time:{type:String,required:true},
-        topic:{type:String, required:true},
-        leader:{type:mongoose.Schema.Types.ObjectId, ref:'User', required:true},
-        leaderName:{type:String}
-    }
- ],
-  lastLeasderIndex:{ type: Number, default: 0}, // helps in rotating leaders
-   attendanceRecords: [
-    {
-        date:{type:Date, required:true}, // when the session was held
-         topic:{type:String, required:true}, // topic covered in that session same as in timetable
-         present:[{
-            type:mongoose.Schema.Types.ObjectId,ref:"User"
-         }], // who attended the session
-         resources:[{
-            name:{type:String}, // for example, maths.pdf
-            url:{type:String}   // links to files
-         }]
-    }
-   ]
+    }],
+   
+    timetable: [
+      {
+        day: { type: String, required: true },        // e.g., "Monday"
+        time: { type: String, required: true },       // e.g., "10 AM"
+        topic: { type: String, required: true },      // e.g., "Database Normalization"
+        leader: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },  // who leads
+        leaderName: { type: String }                  // for quick display
+      }
+    ],
+    lastLeaderIndex: { type: Number, default: 0 },     // helps rotate leaders automatically
+    attendanceRecords: [
+      {
+        date: { type: Date, required: true },         // when the session happened
+        topic: { type: String },                      // same as in timetable
+        present: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],  // who attended
+        resources: [
+          {
+            name: { type: String },                   // e.g., "normalization.pdf"
+            url: { type: String }                     // link to file
+          }
+        ]
+      }
+    ]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Group', GroupSchema);
