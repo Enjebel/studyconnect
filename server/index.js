@@ -32,6 +32,15 @@ if (!MONGO_URI) {
 
 //  (previous imports)
 const userRoutes = require('./routes/userRoutes');
-
+// timetable routes
+const timetableRoutes = require('./routes/timetableRoutes');
 // Use Routes
 app.use('/api/users', userRoutes);
+
+
+const groupRoutes = require('./routes/groupRoutes');
+
+// ... other app.use statements
+app.use('/api/groups', groupRoutes);
+
+app.use('/groups', timetableRoutes);
