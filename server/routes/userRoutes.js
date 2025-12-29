@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser } = require('../controllers/userController');
+const { registerUser, loginUser, updateUserProfile } = require('../controllers/userController');
 
-// Matches /api/users/register
+// Registration and Login
 router.post('/register', registerUser);
-
-// Matches /api/users/login
 router.post('/login', loginUser);
+
+// Profile Updates
+router.put('/profile', updateUserProfile);
 
 module.exports = router;

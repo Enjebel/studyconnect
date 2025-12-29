@@ -1,0 +1,118 @@
+.profile-page {
+    height: 100vh;
+    background-color: #f0f2f5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    position: relative;
+}
+
+.back-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid #ddd;
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    color: #54656f;
+    font-weight: 500;
+}
+
+.profile-card {
+    background: white;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.profile-header {
+    background: linear-gradient(135deg, #00a884, #00c896);
+    padding: 40px 20px;
+    text-align: center;
+    color: white;
+}
+
+.avatar-large {
+    width: 100px;
+    height: 100px;
+    background: white;
+    color: #00a884;
+    font-size: 3rem;
+    font-weight: bold;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.camera-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: #54656f;
+    padding: 5px;
+    border-radius: 50%;
+    color: white;
+}
+
+.profile-body { padding: 30px; }
+
+.info-group { margin-bottom: 20px; }
+.info-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #667781;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.read-only-box, .bio-box, textarea {
+    width: 100%;
+    padding: 12px;
+    background: #f8f9fa;
+    border: 1px solid #e9edef;
+    border-radius: 8px;
+}
+
+textarea {
+    height: 100px;
+    border-color: #00a884;
+    outline: none;
+}
+
+.edit-btn, .save-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.edit-btn { background: #f0f2f5; color: #54656f; }
+.save-btn { background: #00a884; color: white; }
+
+.status-msg {
+    background: #dcf8c6;
+    color: #128c7e;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+}
