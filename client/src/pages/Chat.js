@@ -4,11 +4,10 @@ import io from 'socket.io-client';
 import API from '../api';
 import './Chat.css';
 import { Send, Paperclip, MoreVertical, Search } from 'lucide-react'; 
-// (Removed UserIcon)
-let socket;
+
 
 const Chat = () => {
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('userInfo')));
+    const [user] = useState(JSON.parse(localStorage.getItem('userInfo')));
     const [conversations, setConversations] = useState([]);
     const [selectedChat, setSelectedChat] = useState(null);
     const [message, setMessage] = useState("");
