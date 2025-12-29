@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import API from '../api';
 import './Chat.css';
-import { Send, Paperclip, MoreVertical, Search } from 'lucide-react'; 
+import { Send, Paperclip, MoreVertical, Search } from 'lucide-react';
 
+// Declare socket outside the component to prevent re-definition on every render
+let socket;
 
 const Chat = () => {
     const [user] = useState(JSON.parse(localStorage.getItem('userInfo')));
@@ -25,6 +27,7 @@ const Chat = () => {
         if (!user) {
             navigate('/login');
         } else {
+            // Connect to the backend socket server
             socket = io('http://localhost:5000');
             socket.emit('user_online', user._id);
 
@@ -49,12 +52,12 @@ const Chat = () => {
         if (!socket) return;
 
         socket.on('new_message', (incomingMsg) => {
-            // Logic: If current chat is open, add message to screen
+            // If current chat is open, add message to screen
             if (selectedChat && selectedChat._id === incomingMsg.conversationId) {
                 setChatMessages((prev) => [...prev, incomingMsg]);
             }
 
-            // Logic: Update Sidebar (Move chat to top and update last message)
+            // Update Sidebar: Move active chat to top and update the last message preview
             setConversations((prev) => {
                 const otherChats = prev.filter(c => c._id !== incomingMsg.conversationId);
                 const chatToUpdate = prev.find(c => c._id === incomingMsg.conversationId);
@@ -70,7 +73,7 @@ const Chat = () => {
         return () => socket.off('new_message');
     }, [selectedChat]);
 
-    // 3. Scroll to bottom when messages change
+    // 3. Auto-scroll to latest message
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chatMessages]);
@@ -98,11 +101,9 @@ const Chat = () => {
             setSearchQuery("");
             setSearchResults([]);
             
-            // Refresh conversations list to include this new one if it's new
             const res = await API.get('/messages/conversations');
             setConversations(res.data);
 
-            // Fetch messages for this specific chat
             const msgRes = await API.get(`/messages/${data._id}`);
             setChatMessages(msgRes.data);
         } catch (err) { console.error(err); }
@@ -129,7 +130,6 @@ const Chat = () => {
         } catch (err) { console.error(err); }
     };
 
-    // Helper: Determine Chat Name
     const getChatName = (chat) => {
         if (chat.isGroup) return chat.name;
         const otherParticipant = chat.participants?.find(p => p._id !== user._id);
@@ -138,7 +138,7 @@ const Chat = () => {
 
     return (
         <div className="chat-container">
-            {/* Sidebar Section */}
+            {/* Sidebar */}
             <div className="sidebar">
                 <div className="sidebar-header">
                     <div className="user-profile">
@@ -189,7 +189,7 @@ const Chat = () => {
                 </div>
             </div>
 
-            {/* Main Chat Section */}
+            {/* Main Chat Area */}
             <div className="main-chat">
                 {selectedChat ? (
                     <>
