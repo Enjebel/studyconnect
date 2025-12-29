@@ -1,17 +1,11 @@
 const express = require('express');
 const router = express.Router();
-// Pointing to the new modular controller
-const { 
-    registerUser, 
-    loginUser, 
-    forgotPassword, 
-    resetPassword 
-} = require('../controllers/authController');
+const { registerUser, loginUser } = require('../controllers/userController');
 
-// Public Routes
+// Matches /api/users/register
 router.post('/register', registerUser);
+
+// Matches /api/users/login
 router.post('/login', loginUser);
-router.post('/forgotpassword', forgotPassword);
-router.put('/resetpassword/:resettoken', resetPassword);
 
 module.exports = router;

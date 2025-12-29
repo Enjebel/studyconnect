@@ -1,103 +1,120 @@
-/* Previous CSS remains... add/update these parts: */
-
-.search-container {
-    position: relative;
-    padding: 10px;
-    background-color: #f6f6f6;
+.chat-container {
+    display: flex;
+    height: 100vh;
+    background-color: #f0f2f5;
 }
 
-.search-bar {
+/* Sidebar */
+.sidebar {
+    width: 350px;
+    background: #fff;
+    border-right: 1px solid #d1d7db;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 10px 15px;
+    background: #f0f2f5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-container {
     display: flex;
     align-items: center;
-    background: white;
-    padding: 5px 15px;
-    border-radius: 20px;
+    gap: 8px;
 }
 
-.search-results-dropdown {
-    position: absolute;
-    top: 55px;
-    left: 10px;
-    right: 10px;
-    background: white;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    border-radius: 8px;
-    z-index: 100;
-    max-height: 250px;
-    overflow-y: auto;
-}
-
-.search-result-item {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    cursor: pointer;
-    border-bottom: 1px solid #eee;
-}
-
-.search-result-item:hover {
-    background-color: #f0f0f0;
-}
-
-.avatar-small {
+.logo-icon {
+    background: #00a884;
+    color: white;
     width: 30px;
     height: 30px;
-    background-color: #075e54;
-    color: white;
-    border-radius: 50%;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 10px;
-    font-size: 12px;
+    font-weight: bold;
+    font-size: 0.75rem;
 }
 
-.avatar-medium {
-    width: 45px;
-    height: 45px;
-    background-color: #ccc;
-    border-radius: 50%;
-    margin-right: 15px;
+.logo-text {
+    color: #00a884;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.user-bar {
+    padding: 12px 15px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
+    background: #fff;
+    border-bottom: 1px solid #f0f2f5;
 }
 
-.chat-info {
+.search-container { padding: 10px; }
+.search-bar {
+    background: #f0f2f5;
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 8px;
+}
+.search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 8px; }
+
+.chat-list { flex: 1; overflow-y: auto; }
+.chat-item { display: flex; padding: 12px; gap: 12px; cursor: pointer; border-bottom: 1px solid #f6f6f6; }
+.chat-item.active { background: #f0f2f5; }
+
+/* Main Chat Area */
+.main-chat {
+    flex: 1;
     display: flex;
     flex-direction: column;
+    background: #efeae2; /* WhatsApp-style beige */
 }
 
-.chat-info p {
-    font-size: 12px;
-    color: #666;
-    margin: 0;
+.chat-header {
+    padding: 10px 20px;
+    background: #f0f2f5;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
+.messages-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.message { max-width: 60%; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; }
+.message.sent { align-self: flex-end; background: #dcf8c6; }
+.message.received { align-self: flex-start; background: #fff; }
+
+.input-area { padding: 10px; background: #f0f2f5; display: flex; gap: 10px; }
+.input-area input { flex: 1; border: none; padding: 10px; border-radius: 8px; outline: none; }
+
+/* Welcome Screen */
 .welcome-screen {
+    flex: 1;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #f8f9fa;
+}
+
+.welcome-logo {
+    width: 80px;
+    height: 80px;
+    background: #00a884;
+    color: white;
+    border-radius: 20px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    height: 100%;
-    color: #555;
-    background-color: #f8f9fa;
-    border-bottom: 6px solid #25d366;
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0 auto 20px;
 }
 
-.msg-time {
-    font-size: 10px;
-    display: block;
-    text-align: right;
-    color: #777;
-    margin-top: 5px;
-}
-
-.icon-btn {
-    cursor: pointer;
-    color: #555;
-}
-
-.icon-btn:hover {
-    color: #000;
-}
+.welcome-content h1 { color: #41525d; margin-bottom: 10px; }
+.welcome-content p { color: #667781; }

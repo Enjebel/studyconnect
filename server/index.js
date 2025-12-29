@@ -1,94 +1,32 @@
 const express = require('express');
-const mongoose = require('mongoose') // added you missed this out 
-const dotenv = require('dotenv');
 const cors = require('cors');
-const path = require('path');
-const http = require('http');
-const { Server } = require('socket.io');
+const dotenv = require('dotenv');
 const connectDB = require('./config/db');
-const { errorHandler } = require('./middleware/errorMiddleware');
-const timetableController = require('./routes/timetableRoutes')
+const userRoutes = require('./routes/userRoutes');
 
-// Load Env and Connect DB
 dotenv.config();
 connectDB();
 
 const app = express();
-const server = http.createServer(app);
 
-// Socket.io Setup
-const io = new Server(server, {
-    cors: {
-        origin: process.env.FRONTEND_URL || "http://localhost:3000",
-        methods: ["GET", "POST"]
-    }
-});
-
-// Middleware
+// MIDDLEWARES
 app.use(cors());
-app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.json()); // CRITICAL: This allows the server to read JSON bodies
 
-// Routes
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/groups', require('./routes/groupRoutes'));
-app.use('/api/messages', require('./routes/messageRoutes'));
-app.use('/api/profile', require('./routes/profileRoutes'));
-app.use('/api/search', require('./routes/searchRoutes'));
-
-// Socket Logic
-io.on('connection', (socket) => {
-    socket.on('user_online', async (userId) => {
-        socket.userId = userId;
-        const User = require('./models/User');
-        await User.findByIdAndUpdate(userId, { isOnline: true });
-        io.emit('status_change', { userId, isOnline: true });
-    });
-
-    socket.on('join_chat', (chatId) => {
-        socket.join(chatId);
-    });
-
-    socket.on('send_message', (data) => {
-        io.to(data.conversationId).emit('receive_message', data);
-    });
-
-    socket.on('disconnect', async () => {
-        if (socket.userId) {
-            const User = require('./models/User');
-            await User.findByIdAndUpdate(socket.userId, { isOnline: false, lastSeen: new Date() });
-            io.emit('status_change', { userId: socket.userId, isOnline: false });
-        }
-    });
+// Global Logging Middleware (to see every request)
+app.use((req, res, next) => {
+    console.log(`Incoming: ${req.method} ${req.url}`);
+    console.log("Body:", req.body); // This will show us if data is actually arriving
+    next();
 });
 
-// Custom Error Middleware
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGODB_URI;
-
-if (!MONGO_URI) {
-    console.error("ERROR: MONGODB_URI is not defined in .env file");
-} else {
-    mongoose.connect(MONGO_URI)
-        .then(() => {
-            console.log("MongoDB Connected Successfully");
-            app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-        })
-        .catch(err => console.log("Database Connection Error:", err));
-}
-
-
-//  (previous imports)
-const userRoutes = require('./routes/userRoutes');
-
-// Use Routes
+// ROUTES
 app.use('/api/users', userRoutes);
 
+// Basic Home Route
+app.get('/', (req, res) => {
+    res.send("StudyConnect API is running...");
+});
 
-const groupRoutes = require('./routes/groupRoutes');
-
-// ... other app.use statements
-app.use('/api/groups', groupRoutes);
-app.use('/api/groups' , timetableController)
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

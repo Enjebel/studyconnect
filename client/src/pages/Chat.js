@@ -5,7 +5,6 @@ import API from '../api';
 import './Chat.css';
 import { Send, Paperclip, MoreVertical, Search } from 'lucide-react';
 
-// Declare socket outside the component to prevent re-definition on every render
 let socket;
 
 const Chat = () => {
@@ -14,20 +13,16 @@ const Chat = () => {
     const [selectedChat, setSelectedChat] = useState(null);
     const [message, setMessage] = useState("");
     const [chatMessages, setChatMessages] = useState([]);
-    
-    // Search State
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
 
     const navigate = useNavigate();
     const scrollRef = useRef();
 
-    // 1. Initialize Socket and Fetch Initial Conversations
     useEffect(() => {
         if (!user) {
             navigate('/login');
         } else {
-            // Connect to the backend socket server
             socket = io('http://localhost:5000');
             socket.emit('user_online', user._id);
 
@@ -41,44 +36,31 @@ const Chat = () => {
             };
             fetchChats();
         }
-
-        return () => {
-            if (socket) socket.disconnect();
-        };
+        return () => { if (socket) socket.disconnect(); };
     }, [user, navigate]);
 
-    // 2. Handle Real-Time Socket Listeners
     useEffect(() => {
         if (!socket) return;
-
         socket.on('new_message', (incomingMsg) => {
-            // If current chat is open, add message to screen
             if (selectedChat && selectedChat._id === incomingMsg.conversationId) {
                 setChatMessages((prev) => [...prev, incomingMsg]);
             }
-
-            // Update Sidebar: Move active chat to top and update the last message preview
             setConversations((prev) => {
                 const otherChats = prev.filter(c => c._id !== incomingMsg.conversationId);
                 const chatToUpdate = prev.find(c => c._id === incomingMsg.conversationId);
-                
                 if (chatToUpdate) {
-                    const updated = { ...chatToUpdate, lastMessage: incomingMsg };
-                    return [updated, ...otherChats];
+                    return [{ ...chatToUpdate, lastMessage: incomingMsg }, ...otherChats];
                 }
                 return prev;
             });
         });
-
         return () => socket.off('new_message');
     }, [selectedChat]);
 
-    // 3. Auto-scroll to latest message
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chatMessages]);
 
-    // 4. Live Search for Users
     useEffect(() => {
         const delaySearch = setTimeout(async () => {
             if (searchQuery.length > 1) {
@@ -86,66 +68,55 @@ const Chat = () => {
                     const { data } = await API.get(`/search?query=${searchQuery}`);
                     setSearchResults(data.users);
                 } catch (err) { console.error(err); }
-            } else {
-                setSearchResults([]);
-            }
+            } else { setSearchResults([]); }
         }, 300);
         return () => clearTimeout(delaySearch);
     }, [searchQuery]);
 
-    // 5. Action: Start or Open a Chat
     const startChat = async (recipientId) => {
         try {
             const { data } = await API.post('/messages/conversation', { recipientId });
             setSelectedChat(data);
             setSearchQuery("");
             setSearchResults([]);
-            
             const res = await API.get('/messages/conversations');
             setConversations(res.data);
-
             const msgRes = await API.get(`/messages/${data._id}`);
             setChatMessages(msgRes.data);
         } catch (err) { console.error(err); }
     };
 
-    // 6. Action: Send Message
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!message || !selectedChat) return;
-
-        const msgData = { conversationId: selectedChat._id, text: message };
-        
         try {
-            const { data } = await API.post('/messages/send', msgData);
+            const { data } = await API.post('/messages/send', { conversationId: selectedChat._id, text: message });
             socket.emit('send_message', data);
             setChatMessages((prev) => [...prev, data]);
             setMessage("");
-
-            // Update sidebar locally so it jumps to top
-            setConversations((prev) => {
-                const otherChats = prev.filter(c => c._id !== selectedChat._id);
-                return [{ ...selectedChat, lastMessage: data }, ...otherChats];
-            });
         } catch (err) { console.error(err); }
     };
 
     const getChatName = (chat) => {
         if (chat.isGroup) return chat.name;
         const otherParticipant = chat.participants?.find(p => p._id !== user._id);
-        return otherParticipant ? otherParticipant.username : "Study Mate";
+        return otherParticipant ? otherParticipant.username : "User";
     };
 
     return (
         <div className="chat-container">
-            {/* Sidebar */}
             <div className="sidebar">
                 <div className="sidebar-header">
-                    <div className="user-profile">
-                        <div className="avatar-small">{user?.username.charAt(0).toUpperCase()}</div>
-                        <span>{user?.username}</span>
+                    <div className="logo-container">
+                        <div className="logo-icon">SC</div>
+                        <span className="logo-text">StudyConnect</span>
                     </div>
                     <MoreVertical size={20} className="icon-btn" />
+                </div>
+
+                <div className="user-bar">
+                    <div className="avatar-small">{user?.username?.charAt(0).toUpperCase()}</div>
+                    <span>{user?.username}</span>
                 </div>
 
                 <div className="search-container">
@@ -153,7 +124,7 @@ const Chat = () => {
                         <Search size={18} color="#888" />
                         <input 
                             type="text" 
-                            placeholder="Search students or groups..." 
+                            placeholder="Search students..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -162,7 +133,6 @@ const Chat = () => {
                         <div className="search-results-dropdown">
                             {searchResults.map(u => (
                                 <div key={u._id} className="search-result-item" onClick={() => startChat(u._id)}>
-                                    <div className="avatar-small">{u.username.charAt(0)}</div>
                                     <span>{u.username}</span>
                                 </div>
                             ))}
@@ -172,24 +142,17 @@ const Chat = () => {
 
                 <div className="chat-list">
                     {conversations.map((chat) => (
-                        <div key={chat._id} 
-                             className={`chat-item ${selectedChat?._id === chat._id ? 'active' : ''}`} 
-                             onClick={async () => {
-                                 setSelectedChat(chat);
-                                 const { data } = await API.get(`/messages/${chat._id}`);
-                                 setChatMessages(data);
-                             }}>
+                        <div key={chat._id} className={`chat-item ${selectedChat?._id === chat._id ? 'active' : ''}`} onClick={() => setSelectedChat(chat)}>
                             <div className="avatar-medium">{getChatName(chat).charAt(0)}</div>
                             <div className="chat-info">
                                 <strong>{getChatName(chat)}</strong>
-                                <p>{chat.lastMessage?.text || "No messages yet"}</p>
+                                <p>{chat.lastMessage?.text || "New conversation"}</p>
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* Main Chat Area */}
             <div className="main-chat">
                 {selectedChat ? (
                     <>
@@ -201,29 +164,21 @@ const Chat = () => {
                             {chatMessages.map((m, i) => (
                                 <div key={i} className={`message ${m.sender === user._id || m.sender._id === user._id ? 'sent' : 'received'}`}>
                                     {m.text}
-                                    <span className="msg-time">{new Date(m.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                 </div>
                             ))}
                             <div ref={scrollRef} />
                         </div>
                         <form className="input-area" onSubmit={handleSendMessage}>
-                            <Paperclip size={22} className="icon-btn" />
-                            <input 
-                                type="text" 
-                                placeholder="Type a message..." 
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                            />
-                            <button type="submit" className="send-btn">
-                                <Send size={22} />
-                            </button>
+                            <input type="text" placeholder="Type a message..." value={message} onChange={(e) => setMessage(e.target.value)} />
+                            <button type="submit" className="send-btn"><Send size={22} /></button>
                         </form>
                     </>
                 ) : (
                     <div className="welcome-screen">
                         <div className="welcome-content">
-                            <h1>StudyConnect</h1>
-                            <p>Select a classmate to start collaborating in real-time.</p>
+                            <div className="welcome-logo">SC</div>
+                            <h1>Welcome to StudyConnect</h1>
+                            <p>Select a classmate from the left to start collaborating.</p>
                         </div>
                     </div>
                 )}
