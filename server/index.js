@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose') // added you missed this out 
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
@@ -6,6 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middleware/errorMiddleware');
+const timetableController = require('./routes/timetableRoutes')
 
 // Load Env and Connect DB
 dotenv.config();
@@ -64,4 +66,29 @@ io.on('connection', (socket) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const MONGO_URI = process.env.MONGODB_URI;
+
+if (!MONGO_URI) {
+    console.error("ERROR: MONGODB_URI is not defined in .env file");
+} else {
+    mongoose.connect(MONGO_URI)
+        .then(() => {
+            console.log("MongoDB Connected Successfully");
+            app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        })
+        .catch(err => console.log("Database Connection Error:", err));
+}
+
+
+//  (previous imports)
+const userRoutes = require('./routes/userRoutes');
+
+// Use Routes
+app.use('/api/users', userRoutes);
+
+
+const groupRoutes = require('./routes/groupRoutes');
+
+// ... other app.use statements
+app.use('/api/groups', groupRoutes);
+app.use('/api/groups' , timetableController)
