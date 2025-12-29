@@ -1,0 +1,30 @@
+const User = require('../models/User');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs'); // Use bcryptjs as it's more stable
+
+exports.registerUser = async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+
+        // 1. Check if user exists
+        let user = await User.findOne({ email });
+        if (user) return res.status(400).json({ message: "User already exists" });
+
+        // 2. Create user (The password hashing happens in the User Model usually)
+        user = new User({ username, email, password });
+        await user.save();
+
+        // 3. Generate Token
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+        res.status(201).json({
+            token,
+            _id: user._id,
+            username: user.username,
+            email: user.email
+        });
+    } catch (error) {
+        console.error("Register Error:", error); // This prints the error to your terminal
+        res.status(500).json({ message: error.message });
+    }
+};

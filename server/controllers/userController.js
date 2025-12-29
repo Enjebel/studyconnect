@@ -1,64 +1,52 @@
 const User = require('../models/User');
-const crypto = require('crypto');
-const sendEmail = require('../utils/sendEmail');
-const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-// ... (previous Register/Login logic) ...
-
-exports.forgotPassword = async (req, res) => {
+exports.registerUser = async (req, res) => {
     try {
-        const user = await User.findOne({ email: req.body.email });
-        if (!user) return res.status(404).json({ message: "User not found" });
+        const { username, email, password } = req.body;
+        console.log("Registration attempt for:", email); // Log the attempt
 
-        // Generate Reset Token
-        const resetToken = crypto.randomBytes(20).toString('hex');
+        // 1. Check if user exists
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ message: "User already exists" });
+        }
 
-        // Hash and set to user fields
-        user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-        user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 Minutes
-
+        // 2. Create user
+        user = new User({ username, email, password });
         await user.save();
 
-        const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${resetToken}`;
-        const message = `You are receiving this email because you requested a password reset. Please make a PUT request to: \n\n ${resetUrl}`;
+        // 3. Generate Token
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Password Reset Token',
-                message
-            });
-            res.status(200).json({ message: "Email sent" });
-        } catch (err) {
-            user.resetPasswordToken = undefined;
-            user.resetPasswordExpire = undefined;
-            await user.save();
-            return res.status(500).json({ message: "Email could not be sent" });
-        }
+        console.log("User registered successfully!");
+        res.status(201).json({
+            token,
+            _id: user._id,
+            username: user.username,
+            email: user.email
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        // THIS LINE IS KEY: It will print the exact error in your terminal
+        console.error("DETAILED REGISTER ERROR:", error); 
+        res.status(500).json({ message: error.message });
     }
 };
 
-exports.resetPassword = async (req, res) => {
+// Login Logic
+exports.loginUser = async (req, res) => {
     try {
-        const resetPasswordToken = crypto.createHash('sha256').update(req.params.resettoken).digest('hex');
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
 
-        const user = await User.findOne({
-            resetPasswordToken,
-            resetPasswordExpire: { $gt: Date.now() }
-        });
-
-        if (!user) return res.status(400).json({ message: "Invalid or expired token" });
-
-        // Set new password
-        user.password = req.body.password;
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpire = undefined;
-        await user.save();
-
-        res.status(200).json({ message: "Password updated successfully" });
+        if (user && (await user.matchPassword(password))) {
+            const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+            res.json({ token, _id: user._id, username: user.username, email: user.email });
+        } else {
+            res.status(401).json({ message: "Invalid email or password" });
+        }
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("LOGIN ERROR:", error);
+        res.status(500).json({ message: error.message });
     }
 };
