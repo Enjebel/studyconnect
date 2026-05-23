@@ -123,26 +123,39 @@ exports.updateUserProfile = async (req, res) => {
 // SEARCH FUNCTION - Make sure this is exported!
 exports.searchUsers = async (req, res) => {
     try {
-        if (!isDbReady()) {
-            const users = readFallbackUsers();
-            const currentUserId = req.query.currentUserId;
-            const term = (req.query.search || "").toLowerCase();
-            return res.send(users
-                .filter(user => user._id !== currentUserId)
-                .filter(user => user.username.toLowerCase().includes(term) || user.email.toLowerCase().includes(term))
-                .map(({ password, ...user }) => user));
-        }
+        const currentUserId = req.query.currentUserId;
+        const term = (req.query.search || "").trim();
+        const lowerTerm = term.toLowerCase();
+        const fallbackUsers = readFallbackUsers();
+        let mongoUsers = [];
 
-        const keyword = req.query.search ? {
+        const keyword = term ? {
             $or: [
-                { username: { $regex: req.query.search, $options: "i" } },
-                { email: { $regex: req.query.search, $options: "i" } },
+                { username: { $regex: term, $options: "i" } },
+                { email: { $regex: term, $options: "i" } },
             ],
         } : {};
 
-        // Find users, excluding the one currently searching
-        const users = await User.find(keyword).find({ _id: { $ne: req.query.currentUserId } });
-        res.send(users);
+        if (isDbReady()) {
+            mongoUsers = await User.find(keyword)
+                .select('_id username email bio profilePic')
+                .limit(30)
+                .lean();
+        }
+
+        const fallbackMatches = fallbackUsers
+            .filter(user => !lowerTerm || user.username.toLowerCase().includes(lowerTerm) || user.email.toLowerCase().includes(lowerTerm))
+            .map(({ password, ...user }) => user);
+
+        const users = [...mongoUsers, ...fallbackMatches]
+            .filter(user => String(user._id) !== String(currentUserId))
+            .reduce((acc, user) => {
+                const key = String(user._id || user.email);
+                if (!acc.has(key)) acc.set(key, user);
+                return acc;
+            }, new Map());
+
+        res.send(Array.from(users.values()));
     } catch (error) {
         res.status(500).json({ message: "Search failed", error: error.message });
     }

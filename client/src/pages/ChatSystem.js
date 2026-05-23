@@ -323,9 +323,7 @@ const ChatSystem = () => {
           ...searchLocalUsers({ search: term, currentUserId: userInfo._id })
         ];
         const unique = Array.from(new Map(merged.map(user => [user._id || user.email, user])).values());
-      setUserResults(unique
-        .filter(user => (user._id || user.email) !== userInfo._id)
-        .filter(user => !contactsRef.current.some(contact => contact.userId === user._id)));
+        setUserResults(unique.filter(user => String(user._id || user.email) !== String(userInfo._id || userInfo.email)));
       } catch (error) {
         setUserResults(searchLocalUsers({ search: term, currentUserId: userInfo._id }));
       } finally {
@@ -806,7 +804,7 @@ const ChatSystem = () => {
                 <div className="avatar">{getInitials(user.username || user.email)}</div>
                 <div>
                   <strong>{user.username || user.email}</strong>
-                  <span>{user.email}</span>
+                  <span>{contacts.some(contact => contact.userId === (user._id || user.email)) ? 'Open existing chat' : user.email}</span>
                 </div>
               </button>
             ))}
