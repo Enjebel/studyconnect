@@ -43,3 +43,11 @@ export const loginLocalUser = ({ email, password }) => {
     const { password: _password, ...safeUser } = user;
     return safeUser;
 };
+
+export const searchLocalUsers = ({ search = '', currentUserId }) => {
+    const term = search.trim().toLowerCase();
+    return getLocalUsers()
+        .filter(user => user._id !== currentUserId)
+        .filter(user => !term || user.username.toLowerCase().includes(term) || user.email.toLowerCase().includes(term))
+        .map(({ password: _password, ...safeUser }) => safeUser);
+};

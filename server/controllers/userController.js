@@ -1,25 +1,43 @@
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 const generateToken = require('../utils/generateToken');
 
-const memoryUsers = [];
+const fallbackUsersPath = path.join(__dirname, '..', 'data', 'fallback-users.json');
+const ensureFallbackDir = () => fs.mkdirSync(path.dirname(fallbackUsersPath), { recursive: true });
+const readFallbackUsers = () => {
+    try {
+        ensureFallbackDir();
+        return JSON.parse(fs.readFileSync(fallbackUsersPath, 'utf8'));
+    } catch (error) {
+        return [];
+    }
+};
+const writeFallbackUsers = (users) => {
+    ensureFallbackDir();
+    fs.writeFileSync(fallbackUsersPath, JSON.stringify(users, null, 2));
+};
+
 const isDbReady = () => mongoose.connection.readyState === 1;
 
 exports.registerUser = async (req, res) => {
     try {
         const { username, email, password } = req.body;
         if (!isDbReady()) {
-            const existing = memoryUsers.find(user => user.email === email);
+            const users = readFallbackUsers();
+            const normalizedEmail = email.trim().toLowerCase();
+            const existing = users.find(user => user.email === normalizedEmail);
             if (existing) return res.status(400).json({ message: "User exists" });
             const user = {
                 _id: `memory-user-${Date.now()}`,
-                username,
-                email,
+                username: username.trim(),
+                email: normalizedEmail,
                 password,
                 bio: "",
                 profilePic: ""
             };
-            memoryUsers.push(user);
+            writeFallbackUsers([...users, user]);
             return res.status(201).json({
                 _id: user._id,
                 username: user.username,
@@ -48,7 +66,8 @@ exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!isDbReady()) {
-            const user = memoryUsers.find(item => item.email === email && item.password === password);
+            const users = readFallbackUsers();
+            const user = users.find(item => item.email === email.trim().toLowerCase() && item.password === password);
             if (!user) return res.status(401).json({ message: "Invalid credentials" });
             return res.json({
                 _id: user._id,
@@ -77,9 +96,11 @@ exports.loginUser = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
     try {
         if (!isDbReady()) {
-            const user = memoryUsers.find(item => item._id === req.body.userId);
+            const users = readFallbackUsers();
+            const user = users.find(item => item._id === req.body.userId);
             if (!user) return res.status(404).json({ message: "User not found" });
             user.bio = req.body.bio || user.bio;
+            writeFallbackUsers(users);
             return res.json({ ...user, password: undefined });
         }
 
@@ -103,9 +124,10 @@ exports.updateUserProfile = async (req, res) => {
 exports.searchUsers = async (req, res) => {
     try {
         if (!isDbReady()) {
+            const users = readFallbackUsers();
             const currentUserId = req.query.currentUserId;
             const term = (req.query.search || "").toLowerCase();
-            return res.send(memoryUsers
+            return res.send(users
                 .filter(user => user._id !== currentUserId)
                 .filter(user => user.username.toLowerCase().includes(term) || user.email.toLowerCase().includes(term))
                 .map(({ password, ...user }) => user));

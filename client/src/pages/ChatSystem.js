@@ -28,6 +28,7 @@ import {
   X
 } from 'lucide-react';
 import API from '../api';
+import { searchLocalUsers } from '../authStorage';
 import './Chat.css';
 
 const defaultContacts = [
@@ -82,6 +83,8 @@ const ChatSystem = () => {
   const [activeContactId, setActiveContactId] = useState(defaultContacts[0].id);
   const [input, setInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [userResults, setUserResults] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
   const [messageSearch, setMessageSearch] = useState('');
   const [chatFilter, setChatFilter] = useState('all');
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
@@ -290,6 +293,37 @@ const ChatSystem = () => {
 
     syncMessages();
   }, []);
+
+  useEffect(() => {
+    const term = searchTerm.trim();
+    if (term.length < 2) {
+      setUserResults([]);
+      return;
+    }
+
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    const timer = setTimeout(async () => {
+      setSearchingUsers(true);
+      try {
+        const { data } = await API.get('/users/search', {
+          params: { search: term, currentUserId: userInfo._id }
+        });
+        const users = Array.isArray(data) ? data : [];
+        const merged = [
+          ...users,
+          ...searchLocalUsers({ search: term, currentUserId: userInfo._id })
+        ];
+        const unique = Array.from(new Map(merged.map(user => [user._id || user.email, user])).values());
+        setUserResults(unique.filter(user => !contactsRef.current.some(contact => contact.userId === user._id)));
+      } catch (error) {
+        setUserResults(searchLocalUsers({ search: term, currentUserId: userInfo._id }));
+      } finally {
+        setSearchingUsers(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -638,6 +672,34 @@ const ChatSystem = () => {
     selectContact(nextId);
   };
 
+  const startChatWithUser = (user) => {
+    const contactId = `user-${user._id || user.email}`;
+    const existing = contacts.find(contact => contact.id === contactId || contact.userId === user._id);
+
+    if (existing) {
+      selectContact(existing.id);
+      return;
+    }
+
+    const newContact = {
+      id: contactId,
+      userId: user._id,
+      name: user.username || user.email,
+      subject: user.email,
+      online: false,
+      pinned: false,
+      muted: false,
+      archived: false,
+      unread: 0
+    };
+
+    setContacts(prev => [newContact, ...prev]);
+    setMessagesByContact(prev => ({ ...prev, [contactId]: [] }));
+    setSearchTerm('');
+    setUserResults([]);
+    selectContact(contactId);
+  };
+
   const renderStatus = (message) => {
     if (message.sender !== 'me') return null;
     if (message.status === 'read') return <CheckCheck size={14} className="msg-read" />;
@@ -716,8 +778,24 @@ const ChatSystem = () => {
 
         <div className="sidebar-search">
           <Search size={18} />
-          <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search or start new chat" />
+          <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search chats or users" />
         </div>
+
+        {searchTerm.trim().length >= 2 && (
+          <div className="user-search-results">
+            <div className="search-section-title">{searchingUsers ? 'Searching users...' : 'Users'}</div>
+            {userResults.length === 0 && !searchingUsers && <p>No users found</p>}
+            {userResults.map(user => (
+              <button key={user._id || user.email} type="button" onClick={() => startChatWithUser(user)}>
+                <div className="avatar">{getInitials(user.username || user.email)}</div>
+                <div>
+                  <strong>{user.username || user.email}</strong>
+                  <span>{user.email}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="chat-filters">
           {['all', 'unread', 'groups', 'archived'].map(filter => (
