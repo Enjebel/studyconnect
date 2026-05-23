@@ -37,30 +37,21 @@ const defaultContacts = [
   { id: 'lab-team', name: 'Lab Team', subject: 'Chemistry practicals', online: true, pinned: false, muted: true, archived: false, unread: 0 }
 ];
 
-const seedMessages = {
-  nyami: [
-    { id: 'm1', contactId: 'nyami', sender: 'nyami', senderName: 'nyami lewis', text: 'Did you finish the physics report?', time: '08:42', status: 'read' },
-    { id: 'm2', contactId: 'nyami', sender: 'me', senderName: 'You', text: 'Almost. I am checking the conclusion now.', time: '08:44', status: 'read' }
-  ],
-  'math-group': [
-    { id: 'm3', contactId: 'math-group', sender: 'ada', senderName: 'Ada', text: 'Revision starts at 4 PM today.', time: '09:10', status: 'delivered' }
-  ],
-  'lab-team': [
-    { id: 'm4', contactId: 'lab-team', sender: 'lab-team', senderName: 'Lab Team', text: 'Bring the titration notes tomorrow.', time: '10:15', status: 'delivered' }
-  ]
-};
+const getCurrentUser = () => JSON.parse(localStorage.getItem('userInfo') || '{}');
+const getUserScopedKey = (key) => `${key}:${getCurrentUser()._id || 'guest'}`;
+const getDirectRoomId = (firstId, secondId) => `dm-${[firstId, secondId].sort().join('__')}`;
 
 const loadStoredMessages = () => {
   try {
-    return JSON.parse(localStorage.getItem('studyconnectMessages')) || seedMessages;
+    return JSON.parse(localStorage.getItem(getUserScopedKey('studyconnectMessages'))) || {};
   } catch (error) {
-    return seedMessages;
+    return {};
   }
 };
 
 const loadStoredContacts = () => {
   try {
-    return JSON.parse(localStorage.getItem('studyconnectContacts')) || defaultContacts;
+    return JSON.parse(localStorage.getItem(getUserScopedKey('studyconnectContacts'))) || defaultContacts;
   } catch (error) {
     return defaultContacts;
   }
@@ -109,6 +100,7 @@ const ChatSystem = () => {
   const remoteVideoRef = useRef(null);
   const activeContactIdRef = useRef(activeContactId);
   const contactsRef = useRef(contacts);
+  const currentUser = getCurrentUser();
 
   useEffect(() => {
     activeContactIdRef.current = activeContactId;
@@ -119,6 +111,7 @@ const ChatSystem = () => {
   }, [contacts]);
 
   const activeContact = contacts.find(contact => contact.id === activeContactId) || contacts[0];
+  const isDirectUserChat = activeContact?.id?.startsWith('dm-');
   const visibleMessages = (messagesByContact[activeContact.id] || []).filter(message => !message.deleted);
   const activeMessages = visibleMessages.filter(message => {
     const term = messageSearch.trim().toLowerCase();
@@ -144,11 +137,11 @@ const ChatSystem = () => {
   }, [chatFilter, contacts, searchTerm]);
 
   useEffect(() => {
-    localStorage.setItem('studyconnectMessages', JSON.stringify(messagesByContact));
+    localStorage.setItem(getUserScopedKey('studyconnectMessages'), JSON.stringify(messagesByContact));
   }, [messagesByContact]);
 
   useEffect(() => {
-    localStorage.setItem('studyconnectContacts', JSON.stringify(contacts));
+    localStorage.setItem(getUserScopedKey('studyconnectContacts'), JSON.stringify(contacts));
     socketRef.current?.emit('chat:join', { roomIds: contacts.map(contact => contact.id) });
   }, [contacts]);
 
@@ -179,6 +172,22 @@ const ChatSystem = () => {
       });
 
       if (activeContactIdRef.current !== roomId) {
+        const knownContact = contactsRef.current.find(contact => contact.id === roomId);
+        if (!knownContact && message.senderId) {
+          const newContact = {
+            id: roomId,
+            userId: message.senderId,
+            name: message.senderName || 'New chat',
+            subject: 'Direct message',
+            online: false,
+            pinned: false,
+            muted: false,
+            archived: false,
+            unread: 0
+          };
+          contactsRef.current = [newContact, ...contactsRef.current];
+          setContacts(prev => [newContact, ...prev]);
+        }
         setContacts(prev => prev.map(contact =>
           contact.id === roomId ? { ...contact, unread: (contact.unread || 0) + 1 } : contact
         ));
@@ -271,7 +280,7 @@ const ChatSystem = () => {
       setIsSyncing(true);
       try {
         const { data } = await API.get('/messages');
-        if (Array.isArray(data) && data.length > 0) {
+        if (!isDirectUserChat && Array.isArray(data) && data.length > 0) {
           setMessagesByContact(prev => ({
             ...prev,
             nyami: data.map(message => ({
@@ -292,7 +301,7 @@ const ChatSystem = () => {
     };
 
     syncMessages();
-  }, []);
+  }, [isDirectUserChat]);
 
   useEffect(() => {
     const term = searchTerm.trim();
@@ -314,7 +323,9 @@ const ChatSystem = () => {
           ...searchLocalUsers({ search: term, currentUserId: userInfo._id })
         ];
         const unique = Array.from(new Map(merged.map(user => [user._id || user.email, user])).values());
-        setUserResults(unique.filter(user => !contactsRef.current.some(contact => contact.userId === user._id)));
+      setUserResults(unique
+        .filter(user => (user._id || user.email) !== userInfo._id)
+        .filter(user => !contactsRef.current.some(contact => contact.userId === user._id)));
       } catch (error) {
         setUserResults(searchLocalUsers({ search: term, currentUserId: userInfo._id }));
       } finally {
@@ -382,6 +393,7 @@ const ChatSystem = () => {
       id: `local-${Date.now()}`,
       contactId: activeContact.id,
       sender: 'me',
+      senderId: currentUser._id || currentUser.email || 'guest',
       senderName: 'You',
       text,
       replyTo,
@@ -454,6 +466,7 @@ const ChatSystem = () => {
       id: `local-${Date.now()}`,
       contactId: activeContact.id,
       sender: 'me',
+      senderId: currentUser._id || currentUser.email || 'guest',
       senderName: 'You',
       type,
       text,
@@ -508,6 +521,7 @@ const ChatSystem = () => {
       id: `poll-${Date.now()}`,
       contactId: activeContact.id,
       sender: 'me',
+      senderId: currentUser._id || currentUser.email || 'guest',
       senderName: 'You',
       type: 'poll',
       text: question,
@@ -673,7 +687,9 @@ const ChatSystem = () => {
   };
 
   const startChatWithUser = (user) => {
-    const contactId = `user-${user._id || user.email}`;
+    const userId = user._id || user.email;
+    const meId = currentUser._id || currentUser.email || 'guest';
+    const contactId = getDirectRoomId(meId, userId);
     const existing = contacts.find(contact => contact.id === contactId || contact.userId === user._id);
 
     if (existing) {
@@ -683,7 +699,7 @@ const ChatSystem = () => {
 
     const newContact = {
       id: contactId,
-      userId: user._id,
+      userId,
       name: user.username || user.email,
       subject: user.email,
       online: false,

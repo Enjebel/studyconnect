@@ -14,6 +14,7 @@ import './Global.css';
 const AppContent = ({ theme, setTheme }) => {
   const location = useLocation();
   const isAuthRoute = ['/login', '/register'].includes(location.pathname);
+  const isLoggedIn = Boolean(localStorage.getItem('userInfo'));
 
   const getActive = () => {
     if (location.pathname === '/') return 'dashboard';
@@ -21,6 +22,10 @@ const AppContent = ({ theme, setTheme }) => {
   };
 
   if (isAuthRoute) {
+    if (isLoggedIn) {
+      return <Navigate to="/" replace />;
+    }
+
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -28,6 +33,10 @@ const AppContent = ({ theme, setTheme }) => {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
+  }
+
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
   }
 
   return (
