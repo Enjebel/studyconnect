@@ -1,0 +1,14 @@
+{
+  "name": "studyconnect",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix server start",
+    "build": "npm --prefix server ci",
+    "server": "npm --prefix server start",
+    "client:build": "npm --prefix client run build"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
