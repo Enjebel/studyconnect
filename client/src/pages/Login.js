@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import API from '../api';
-import './Register.css'; // Reusing Register styles for consistency
+import { loginLocalUser } from '../authStorage';
+import './Auth.css';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     // Redirect if already logged in
@@ -20,12 +22,21 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
         try {
-            const { data } = await API.post('/users/login', { email, password });
+            let data;
+            try {
+                const response = await API.post('/users/login', { email, password });
+                data = response.data;
+            } catch (apiError) {
+                data = loginLocalUser({ email, password });
+            }
             localStorage.setItem('userInfo', JSON.stringify(data));
             navigate('/');
         } catch (err) {
-            setError(err.response?.data?.message || 'Invalid email or password');
+            setError(err.response?.data?.message || err.message || 'Invalid email or password');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -52,7 +63,7 @@ const Login = () => {
                         onChange={(e) => setPassword(e.target.value)} 
                         required 
                     />
-                    <button type="submit" className="auth-button">Sign In</button>
+                    <button type="submit" className="auth-button" disabled={loading}>{loading ? 'Signing in...' : 'Sign In'}</button>
                 </form>
 
                 <p className="auth-footer">
