@@ -1,0 +1,251 @@
+.sc-page-content {
+  flex: 1;
+  overflow: auto;
+  padding: 28px;
+  background: var(--bg-dark);
+  color: var(--text-main);
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.65rem;
+}
+
+.text-dim {
+  color: var(--text-dim);
+}
+
+.pro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.pro-card {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.pro-card h3 {
+  margin: 0 0 8px;
+}
+
+.pro-card p {
+  line-height: 1.5;
+}
+
+.metric-card h2 {
+  font-size: 2rem;
+  margin: 8px 0 4px;
+}
+
+.icon-box {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-accent);
+  border-radius: 8px;
+}
+
+.btn-pill-green {
+  background: var(--green);
+  color: white;
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  min-height: 38px;
+}
+
+.toolbar-form {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 160px auto;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.pro-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-input);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  outline: none;
+  resize: vertical;
+}
+
+.table-input {
+  width: 100%;
+  min-width: 120px;
+  box-sizing: border-box;
+  color: var(--text-main);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-card,
+.card-heading,
+.row-actions {
+  display: flex;
+  align-items: center;
+}
+
+.task-card {
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.task-card.is-done {
+  opacity: 0.7;
+}
+
+.task-card.is-done h3 {
+  text-decoration: line-through;
+}
+
+.card-heading {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.row-actions {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.icon-danger {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.14);
+  color: var(--danger);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dashboard-split,
+.profile-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.profile-layout {
+  grid-template-columns: minmax(280px, 520px);
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.avatar-big {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: var(--bg-accent);
+  border: 2px solid var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-sidebar);
+}
+
+.sc-table-ui {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.sc-table-ui th,
+.sc-table-ui td {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.sc-table-ui th {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+}
+
+.mobile-only {
+  display: none;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--bg-accent); border-radius: 10px; }
+
+@media (max-width: 760px) {
+  .sc-page-content {
+    padding: 18px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .toolbar-form,
+  .dashboard-split {
+    grid-template-columns: 1fr;
+  }
+
+  .task-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+}
