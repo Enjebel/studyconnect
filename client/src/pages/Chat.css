@@ -693,6 +693,56 @@
   display: inline-flex;
 }
 
+.incoming-call {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 28px));
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 24;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+}
+
+.incoming-call div:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.incoming-call span {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.accept-call,
+.decline-call {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.accept-call {
+  background: var(--green);
+}
+
+.decline-call {
+  background: var(--danger);
+}
+
 .call-overlay {
   position: absolute;
   inset: 0;

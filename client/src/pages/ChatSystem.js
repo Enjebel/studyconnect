@@ -92,6 +92,7 @@ const ChatSystem = () => {
   const [pollDraft, setPollDraft] = useState(null);
   const [recording, setRecording] = useState(false);
   const [callState, setCallState] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(null);
   const [callError, setCallError] = useState('');
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -103,6 +104,16 @@ const ChatSystem = () => {
   const socketRef = useRef(null);
   const videoPreviewRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const activeContactIdRef = useRef(activeContactId);
+  const contactsRef = useRef(contacts);
+
+  useEffect(() => {
+    activeContactIdRef.current = activeContactId;
+  }, [activeContactId]);
+
+  useEffect(() => {
+    contactsRef.current = contacts;
+  }, [contacts]);
 
   const activeContact = contacts.find(contact => contact.id === activeContactId) || contacts[0];
   const visibleMessages = (messagesByContact[activeContact.id] || []).filter(message => !message.deleted);
@@ -135,11 +146,69 @@ const ChatSystem = () => {
 
   useEffect(() => {
     localStorage.setItem('studyconnectContacts', JSON.stringify(contacts));
+    socketRef.current?.emit('chat:join', { roomIds: contacts.map(contact => contact.id) });
   }, [contacts]);
 
   useEffect(() => {
     socketRef.current = io((process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace('/api', ''), {
       transports: ['websocket', 'polling']
+    });
+
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    socketRef.current.on('connect', () => {
+      socketRef.current.emit('chat:join', {
+        roomIds: contactsRef.current.map(contact => contact.id),
+        user: {
+          id: userInfo._id || 'guest',
+          username: userInfo.username || 'Guest'
+        }
+      });
+    });
+
+    socketRef.current.on('message:receive', ({ roomId, message }) => {
+      setMessagesByContact(prev => {
+        const exists = (prev[roomId] || []).some(item => (item.id || item._id) === (message.id || message._id));
+        if (exists) return prev;
+        return {
+          ...prev,
+          [roomId]: [...(prev[roomId] || []), { ...message, status: 'delivered' }]
+        };
+      });
+
+      if (activeContactIdRef.current !== roomId) {
+        setContacts(prev => prev.map(contact =>
+          contact.id === roomId ? { ...contact, unread: (contact.unread || 0) + 1 } : contact
+        ));
+      } else {
+        socketRef.current.emit('message:read', { roomId });
+      }
+    });
+
+    socketRef.current.on('message:read', ({ roomId }) => {
+      setMessagesByContact(prev => ({
+        ...prev,
+        [roomId]: (prev[roomId] || []).map(message =>
+          message.sender === 'me' ? { ...message, status: 'read' } : message
+        )
+      }));
+    });
+
+    socketRef.current.on('call:incoming', ({ roomId, mode, caller }) => {
+      setIncomingCall({ roomId, mode, caller });
+      setShowChatOnMobile(true);
+      const contactExists = contactsRef.current.some(contact => contact.id === roomId);
+      if (contactExists) setActiveContactId(roomId);
+    });
+
+    socketRef.current.on('call:declined', () => {
+      setCallError('Call declined.');
+      peerRef.current?.close();
+      peerRef.current = null;
+      callStreamRef.current?.getTracks().forEach(track => track.stop());
+      callStreamRef.current = null;
+      remoteStreamRef.current?.getTracks().forEach(track => track.stop());
+      remoteStreamRef.current = null;
+      setCallState(null);
     });
 
     socketRef.current.on('call:user-joined', async () => {
@@ -231,6 +300,7 @@ const ChatSystem = () => {
   const selectContact = (contactId) => {
     setActiveContactId(contactId);
     setContacts(prev => prev.map(contact => contact.id === contactId ? { ...contact, unread: 0 } : contact));
+    socketRef.current?.emit('message:read', { roomId: contactId });
     setMessageSearch('');
     setReplyTo(null);
     setShowChatOnMobile(true);
@@ -286,6 +356,7 @@ const ChatSystem = () => {
     };
 
     appendMessage(activeContact.id, optimisticMessage);
+    socketRef.current?.emit('message:send', { roomId: activeContact.id, message: optimisticMessage });
     setInput('');
     setShowEmojiPicker(false);
     setReplyTo(null);
@@ -358,6 +429,7 @@ const ChatSystem = () => {
       status: 'delivered'
     };
     appendMessage(activeContact.id, message);
+    socketRef.current?.emit('message:send', { roomId: activeContact.id, message });
     setReplyTo(null);
 
     try {
@@ -398,7 +470,7 @@ const ChatSystem = () => {
     const options = (pollDraft?.options || []).map(option => option.trim()).filter(Boolean);
     if (!question || options.length < 2) return;
 
-    appendMessage(activeContact.id, {
+    const pollMessage = {
       id: `poll-${Date.now()}`,
       contactId: activeContact.id,
       sender: 'me',
@@ -408,7 +480,9 @@ const ChatSystem = () => {
       options: options.map(option => ({ label: option, votes: 0, voted: false })),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'delivered'
-    });
+    };
+    appendMessage(activeContact.id, pollMessage);
+    socketRef.current?.emit('message:send', { roomId: activeContact.id, message: pollMessage });
     setPollDraft(null);
     setShowAttachMenu(false);
   };
@@ -471,6 +545,12 @@ const ChatSystem = () => {
       const peer = createPeer(roomId);
       peerRef.current = peer;
       stream.getTracks().forEach(track => peer.addTrack(track, stream));
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      socketRef.current?.emit('call:ring', {
+        roomId,
+        mode,
+        caller: { id: userInfo._id || 'guest', username: userInfo.username || 'StudyConnect user' }
+      });
       socketRef.current?.emit('call:join', { roomId, mode });
       if (mode === 'video' && videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
@@ -479,6 +559,37 @@ const ChatSystem = () => {
       setCallError(mode === 'video' ? 'Camera and microphone permission are required for video calls.' : 'Microphone permission is required for calls.');
       setCallState(null);
     }
+  };
+
+  const acceptIncomingCall = async () => {
+    if (!incomingCall) return;
+    const { roomId, mode } = incomingCall;
+    setActiveContactId(roomId);
+    setIncomingCall(null);
+    setCallError('');
+    setCallState({ mode, muted: false, cameraOff: false, connected: false, startedAt: Date.now() });
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: mode === 'video' });
+      callStreamRef.current = stream;
+      const peer = createPeer(roomId);
+      peerRef.current = peer;
+      stream.getTracks().forEach(track => peer.addTrack(track, stream));
+      socketRef.current?.emit('call:join', { roomId, mode });
+      if (mode === 'video' && videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      setCallError(mode === 'video' ? 'Camera and microphone permission are required for video calls.' : 'Microphone permission is required for calls.');
+      setCallState(null);
+    }
+  };
+
+  const declineIncomingCall = () => {
+    if (incomingCall) {
+      socketRef.current?.emit('call:decline', { roomId: incomingCall.roomId });
+    }
+    setIncomingCall(null);
   };
 
   useEffect(() => {
@@ -763,6 +874,18 @@ const ChatSystem = () => {
         <div className="call-error">
           <span>{callError}</span>
           <button type="button" onClick={() => setCallError('')} aria-label="Dismiss"><X size={16} /></button>
+        </div>
+      )}
+
+      {incomingCall && (
+        <div className="incoming-call">
+          <div className="avatar">{getInitials(incomingCall.caller?.username || activeContact.name)}</div>
+          <div>
+            <strong>{incomingCall.caller?.username || activeContact.name}</strong>
+            <span>Incoming {incomingCall.mode === 'video' ? 'video' : 'voice'} call</span>
+          </div>
+          <button className="accept-call" type="button" onClick={acceptIncomingCall} aria-label="Accept call"><Phone size={18} /></button>
+          <button className="decline-call" type="button" onClick={declineIncomingCall} aria-label="Decline call"><PhoneOff size={18} /></button>
         </div>
       )}
 

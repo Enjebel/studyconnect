@@ -44,6 +44,28 @@ app.get('/api/health', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 io.on('connection', (socket) => {
+    socket.on('chat:join', ({ roomIds = [], user }) => {
+        roomIds.forEach((roomId) => socket.join(roomId));
+        socket.data.user = user;
+    });
+
+    socket.on('message:send', ({ roomId, message }) => {
+        socket.to(roomId).emit('message:receive', { roomId, message });
+    });
+
+    socket.on('message:read', ({ roomId }) => {
+        socket.to(roomId).emit('message:read', { roomId });
+    });
+
+    socket.on('call:ring', ({ roomId, mode, caller }) => {
+        socket.join(roomId);
+        socket.to(roomId).emit('call:incoming', { roomId, mode, caller, from: socket.id });
+    });
+
+    socket.on('call:decline', ({ roomId }) => {
+        socket.to(roomId).emit('call:declined', { roomId });
+    });
+
     socket.on('call:join', ({ roomId, mode }) => {
         socket.join(roomId);
         socket.to(roomId).emit('call:user-joined', { socketId: socket.id, mode });
