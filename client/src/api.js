@@ -6,7 +6,7 @@ const getBaseURL = () => {
     }
 
     const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    return isLocalhost ? 'http://localhost:5000/api' : '/api';
+    return isLocalhost ? 'http://localhost:5000/api' : 'https://studyconnect-2agx.onrender.com/api';
 };
 
 const API = axios.create({

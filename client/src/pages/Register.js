@@ -26,6 +26,7 @@ const Register = () => {
                 if (status === 400) {
                     throw new Error(apiError.response?.data?.message || 'User exists');
                 }
+                console.warn('Backend registration unavailable, using local registration fallback.', apiError.message);
                 data = registerLocalUser({ username, email, password });
             }
             localStorage.setItem('userInfo', JSON.stringify(data));

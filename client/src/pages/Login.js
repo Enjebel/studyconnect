@@ -29,6 +29,7 @@ const Login = () => {
                 const response = await API.post('/users/login', { email, password });
                 data = response.data;
             } catch (apiError) {
+                console.warn('Backend login unavailable, using local login fallback.', apiError.message);
                 data = loginLocalUser({ email, password });
             }
             localStorage.setItem('userInfo', JSON.stringify(data));
