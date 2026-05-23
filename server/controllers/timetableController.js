@@ -28,10 +28,10 @@ exports.addSession = async (req, res) =>{
     let leaderId;
     let leaderName="Unknown";
 
-    if(group.members.lenght > 0){
+    if(group.members.length > 0){
         // move to the next person in members list
-        group.lastLeasderIndex = (group.lastLeasderIndex + 1) % group.members.length;
-        leaderId = group.members[group.lastLeasderIndex]
+        group.lastLeaderIndex = (group.lastLeaderIndex + 1) % group.members.length;
+        leaderId = group.members[group.lastLeaderIndex]
     }
 
 

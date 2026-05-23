@@ -1,12 +1,24 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const MessageSchema = new mongoose.Schema({
-    conversationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', required: true },
-    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+const MessageSchema = new mongoose.Schema(
+  {
+    conversationId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "Conversation" 
+    },
+    sender: { 
+        type: mongoose.Schema.Types.Mixed,
+        ref: "User"
+    },
+    senderName: { type: String, default: "" },
     text: { type: String },
-    fileUrl: { type: String, default: null },
-    fileType: { type: String, default: null },
-    isRead: { type: Boolean, default: false }
-}, { timestamps: true });
+    time: { type: String, default: "" },
+    fileUrl: { type: String, default: "" },
+    messageType: { type: String, default: "text" },
+    // status can be 'delivered' or 'read'
+    status: { type: String, default: "delivered" } 
+  },
+  { timestamps: true }
+);
 
-module.exports = mongoose.model('Message', MessageSchema);
+module.exports = mongoose.model("Message", MessageSchema);

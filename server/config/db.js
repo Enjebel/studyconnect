@@ -1,13 +1,16 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
+    if (!process.env.MONGO_URI) {
+        console.warn('MONGO_URI is not set. API server started without a database connection.');
+        return;
+    }
+
     try {
-        // Use the exact name from your .env file
         const conn = await mongoose.connect(process.env.MONGO_URI);
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        console.log(`MongoDB Atlas Connected: ${conn.connection.host}`);
     } catch (error) {
-        console.error(`Error: ${error.message}`);
-        process.exit(1);
+        console.error(`Database Connection Error: ${error.message}`);
     }
 };
 

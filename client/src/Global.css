@@ -1,0 +1,107 @@
+/* src/Global.css */
+:root {
+  --bg-dark: #0b141a;
+  --bg-sidebar: #111b21;
+  --bg-accent: #202c33;
+  --bg-input: #2a3942;
+  --text-main: #e9edef;
+  --text-dim: #8696a0;
+  --green: #00a884;
+  --border: #222d34;
+  --danger: #ef4444;
+}
+
+body, html, #root { 
+  margin: 0; 
+  padding: 0; 
+  height: 100%; 
+  background: var(--bg-dark); 
+  color: var(--text-main); 
+  overflow: hidden;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+[data-theme="light"] {
+  --bg-dark: #f6f8fb;
+  --bg-sidebar: #ffffff;
+  --bg-accent: #e8eef2;
+  --bg-input: #ffffff;
+  --text-main: #162026;
+  --text-dim: #62717a;
+  --border: #d8e0e5;
+}
+
+/* The Layout Engine */
+.app-main-container { 
+  display: flex; 
+  height: 100vh; 
+  width: 100vw; 
+}
+
+.content-view-area { 
+  flex: 1; 
+  display: flex; 
+  flex-direction: column; 
+  overflow: hidden; 
+}
+
+/* Pill buttons from your screenshots */
+.btn-pill {
+  background: var(--green);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+button, input {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+@media (max-width: 860px) {
+  .app-main-container {
+    flex-direction: column-reverse;
+  }
+
+  .content-view-area {
+    min-height: 0;
+  }
+
+  .navigation-rail {
+    width: 100vw !important;
+    height: 62px !important;
+    flex-direction: row !important;
+    justify-content: space-around;
+    padding: 0 !important;
+    border-right: 0 !important;
+    border-top: 1px solid var(--border);
+  }
+
+  .rail-logo {
+    display: none;
+  }
+
+  .rail-main,
+  .rail-bottom {
+    flex: 0 0 auto !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    border-top: 0 !important;
+    width: auto !important;
+    padding-top: 0 !important;
+    gap: 4px !important;
+  }
+
+  .rail-bottom svg:first-child {
+    display: none;
+  }
+}

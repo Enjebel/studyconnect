@@ -1,93 +1,59 @@
-import React, { useState } from 'react';
-import API from '../api';
-import './Profile.css';
-import { User, Mail, Camera, Save, Edit2, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Check, Edit3 } from 'lucide-react';
+import './SubPages.css';
 
 const Profile = () => {
-    const navigate = useNavigate();
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('userInfo')));
-    const [isEditing, setIsEditing] = useState(false);
-    const [bio, setBio] = useState(user?.bio || "");
-    const [message, setMessage] = useState("");
-
-    const handleUpdate = async (e) => {
-        e.preventDefault();
-        try {
-            const { data } = await API.put(`/users/profile`, { 
-                userId: user._id, 
-                bio 
-            });
-            
-            // Sync the updated info to LocalStorage
-            const updatedUser = { ...user, bio: data.bio };
-            localStorage.setItem('userInfo', JSON.stringify(updatedUser));
-            setUser(updatedUser);
-            setIsEditing(false);
-            setMessage("Profile updated successfully!");
-            setTimeout(() => setMessage(""), 3000);
-        } catch (err) {
-            console.error(err);
-            setMessage("Error updating profile.");
-        }
-    };
-
-    if (!user) {
-        return <div className="profile-page">Please log in to view profile.</div>;
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('userInfo'));
+      return {
+        username: stored?.username || stored?.name || 'enjel',
+        email: stored?.email || 'enjel@gmail.com',
+        bio: stored?.bio || 'Focused on collaborative study and weekly revision.'
+      };
+    } catch (error) {
+      return { username: 'enjel', email: 'enjel@gmail.com', bio: 'Focused on collaborative study and weekly revision.' };
     }
+  });
+  const [edit, setEdit] = useState(false);
 
-    return (
-        <div className="profile-page">
-            <button className="back-btn" onClick={() => navigate('/')}>
-                <ArrowLeft size={20} /> Back to Chat
-            </button>
-            
-            <div className="profile-card">
-                <div className="profile-header">
-                    <div className="avatar-large">
-                        {user.username.charAt(0).toUpperCase()}
-                        <div className="camera-badge"><Camera size={16} /></div>
-                    </div>
-                    <h2>{user.username}</h2>
-                    <p>StudyConnect Member</p>
-                </div>
+  useEffect(() => {
+    const previous = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    localStorage.setItem('userInfo', JSON.stringify({ ...previous, ...user }));
+  }, [user]);
 
-                <div className="profile-body">
-                    {message && <div className="status-msg">{message}</div>}
-                    
-                    <div className="info-group">
-                        <label><Mail size={18} /> Email Address</label>
-                        <div className="read-only-box">{user.email}</div>
-                    </div>
-
-                    <div className="info-group">
-                        <label><User size={18} /> Bio / Study Interests</label>
-                        {isEditing ? (
-                            <textarea 
-                                value={bio} 
-                                onChange={(e) => setBio(e.target.value)} 
-                                placeholder="What are you currently studying?"
-                            />
-                        ) : (
-                            <div className="bio-box">{user.bio || "No bio added yet..."}</div>
-                        )}
-                    </div>
-
-                    <div className="profile-actions">
-                        {isEditing ? (
-                            <button className="save-btn" onClick={handleUpdate}>
-                                <Save size={18} /> Save Changes
-                            </button>
-                        ) : (
-                            <button className="edit-btn" onClick={() => setIsEditing(true)}>
-                                <Edit2 size={18} /> Edit Profile
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
+  return (
+    <main className="sc-page-content">
+      <header className="page-header">
+        <div>
+          <h1>User Profile</h1>
+          <p className="text-dim">Manage the identity used across StudyConnect.</p>
         </div>
-    );
+      </header>
+
+      <section className="profile-layout">
+        <article className="pro-card profile-card">
+          <div className="avatar-big">{(user.username || 'S')[0].toUpperCase()}</div>
+          {edit ? (
+            <div className="form-stack">
+              <input className="pro-input" value={user.username} onChange={(event) => setUser({ ...user, username: event.target.value })} />
+              <input className="pro-input" value={user.email} onChange={(event) => setUser({ ...user, email: event.target.value })} />
+              <textarea className="pro-input" value={user.bio} onChange={(event) => setUser({ ...user, bio: event.target.value })} rows="4" />
+            </div>
+          ) : (
+            <div>
+              <h2>{user.username}</h2>
+              <p className="text-dim">{user.email}</p>
+              <p>{user.bio}</p>
+            </div>
+          )}
+          <button className="btn-pill-green" type="button" onClick={() => setEdit(!edit)}>
+            {edit ? <><Check size={18} /> Done</> : <><Edit3 size={18} /> Edit Profile</>}
+          </button>
+        </article>
+      </section>
+    </main>
+  );
 };
 
 export default Profile;

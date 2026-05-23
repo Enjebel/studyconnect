@@ -1,12 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, updateUserProfile } = require('../controllers/userController');
+const multer = require('multer');
+const path = require('path');
+const { registerUser, loginUser, updateUserProfile, searchUsers } = require('../controllers/userController');
 
-// Registration and Login
+const storage = multer.diskStorage({
+    destination(req, file, cb) { cb(null, 'uploads/'); },
+    filename(req, file, cb) {
+        cb(null, `user-${Date.now()}${path.extname(file.originalname)}`);
+    }
+});
+const upload = multer({ storage });
+
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-
-// Profile Updates
-router.put('/profile', updateUserProfile);
+router.get('/search', searchUsers); // This must be exactly like this
+router.put('/profile', upload.single('profilePic'), updateUserProfile);
 
 module.exports = router;
